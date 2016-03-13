@@ -337,6 +337,69 @@ public class InviteUtil
         return Collections.unmodifiableList(invites);
     }
 
+    /**
+     * Accepts a BotInvite (the bot from the BotInvite gets invited to a given guild).
+     *
+     * The applicationId and permissions have to be specified manually.
+     * If you call this from a BotInviteReceivedEvent, you have access the applicationId via the urlArg "client_id"
+     *
+     * @param guild
+     *      The guild the bot will get invited to
+     * @param applicationId
+     *      The application-id of the bot-application
+     * @param permissions
+     *      The permissions the invited Bot should get after joining the Guild.
+     * @throws PermissionException
+     *      If either:<br>
+     *      <ul>
+     *          <li>This account does not have the {@link net.dv8tion.jda.Permission#MANAGE_SERVER MANAGE_SERVER Permission}</li>
+     *          <li>the permissions of the joining bot are != 0 and this account doesn't have the {@link net.dv8tion.jda.Permission#MANAGE_ROLES MANAGE_ROLES Permission}</li>
+     *      </ul>
+     */
+    public static void acceptBotInvite(Guild guild, String applicationId, Permission... permissions) {
+        int perms = 0;
+        for (Permission permission : permissions)
+        {
+            perms = perms | (1 << permission.getOffset());
+        }
+        acceptBotInvite(guild, applicationId, perms);
+    }
+
+    /**
+     * Accepts a BotInvite (the bot from the BotInvite gets invited to a given guild).
+     *
+     * The applicationId and permissions have to be specified manually.
+     * If you call this from a BotInviteReceivedEvent, you have access to those via following urlArgs:<br>
+     * applicationId is urlArg "client_id"<br>
+     * permissions is urlArg "permissions" but may not exist int the urlArgs-map.
+     *
+     * @param guild
+     *      The guild the bot will get invited to
+     * @param applicationId
+     *      The application-id of the bot-application
+     * @param permissions
+     *      The permissions the invited Bot should get after joining the Guild.
+     *      If you do not have the integer-value of the permissions, use {@link #acceptBotInvite(Guild, String, Permission...)} instead
+     * @throws PermissionException
+     *      If either:<br>
+     *      <ul>
+     *          <li>This account does not have the {@link net.dv8tion.jda.Permission#MANAGE_SERVER MANAGE_SERVER Permission}</li>
+     *          <li>the permissions of the joining bot are != 0 and this account doesn't have the {@link net.dv8tion.jda.Permission#MANAGE_ROLES MANAGE_ROLES Permission}</li>
+     *      </ul>
+     */
+    public static void acceptBotInvite(Guild guild, String applicationId, int permissions) {
+        if(!PermissionUtil.checkPermission(guild.getJDA().getSelfInfo(), Permission.MANAGE_SERVER, guild))
+            throw new PermissionException(Permission.MANAGE_SERVER);
+        if (permissions != 0 && !PermissionUtil.checkPermission(guild.getJDA().getSelfInfo(), Permission.MANAGE_ROLES, guild))
+            throw new PermissionException(Permission.MANAGE_ROLES);
+
+        ((JDAImpl) guild.getJDA()).getRequester().post("https://discordapp.com/api/oauth2/authorize?client_id=" + applicationId + "&scope=bot",
+                new JSONObject()
+                        .put("guild_id", guild.getId())
+                        .put("permissions", permissions)
+                        .put("authorize", true));
+    }
+
     public static class Invite
     {
         private final String code;
