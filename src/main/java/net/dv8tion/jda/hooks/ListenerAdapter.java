@@ -68,6 +68,7 @@ public abstract class ListenerAdapter implements EventListener
     public void onMessageEmbed(MessageEmbedEvent event) {}
 
     public void onInviteReceived(InviteReceivedEvent event) {}
+    public void onBotInviteReceived(BotInviteReceivedEvent event) {}
 
     //TextChannel Events
     public void onTextChannelDelete(TextChannelDeleteEvent event) {}
@@ -187,7 +188,9 @@ public abstract class ListenerAdapter implements EventListener
             onMessageEmbed((MessageEmbedEvent) event);
         //Invite Messages
         else if (event instanceof InviteReceivedEvent)
-            onInviteReceived(((InviteReceivedEvent) event));
+            onInviteReceived((InviteReceivedEvent) event);
+        else if(event instanceof BotInviteReceivedEvent)
+            onBotInviteReceived((BotInviteReceivedEvent) event);
 
         //User Events
         else if (event instanceof UserNameUpdateEvent)

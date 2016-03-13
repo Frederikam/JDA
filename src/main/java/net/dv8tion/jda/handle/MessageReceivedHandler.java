@@ -17,6 +17,7 @@ package net.dv8tion.jda.handle;
 
 import net.dv8tion.jda.entities.Message;
 import net.dv8tion.jda.entities.impl.JDAImpl;
+import net.dv8tion.jda.events.BotInviteReceivedEvent;
 import net.dv8tion.jda.events.InviteReceivedEvent;
 import net.dv8tion.jda.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.events.message.guild.GuildMessageReceivedEvent;
@@ -24,12 +25,16 @@ import net.dv8tion.jda.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.utils.InviteUtil;
 import org.json.JSONObject;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MessageReceivedHandler extends SocketHandler
 {
     private static final Pattern invitePattern = Pattern.compile("\\bhttps://discord.gg/([a-zA-Z0-9-]+)\\b");
+    public static final Pattern authPattern = Pattern.compile("\\bhttps://(?:www\\.)?discordapp\\.com/oauth2/authorize\\?(.+)\\b");
 
     public MessageReceivedHandler(JDAImpl api, int responseNumber)
     {
@@ -71,6 +76,24 @@ public class MessageReceivedHandler extends SocketHandler
                         new InviteReceivedEvent(
                                 api, responseNumber,
                                 message,invite));
+            }
+        }
+
+        //searching for bot-invites
+        matcher = authPattern.matcher(message.getContent());
+        while (matcher.find())
+        {
+            Map<String, String> argMap = new HashMap<>();
+            String[] urlArgs = matcher.group(1).split("&");
+            Arrays.stream(urlArgs).filter(a -> a.contains("=")).forEach(a -> {
+                String[] split = a.split("=");
+                argMap.put(split[0], split[1]);
+            });
+
+            if (argMap.containsKey("client_id") && argMap.containsKey("scope") && argMap.get("scope").equals("bot"))
+            {
+                api.getEventManager().handle(
+                        new BotInviteReceivedEvent(api, responseNumber, message, argMap));
             }
         }
     }
